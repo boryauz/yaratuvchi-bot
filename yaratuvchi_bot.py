@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler, filters, ContextTypes
 import urllib.request
 import json
@@ -12,13 +12,6 @@ WEATHER_API_KEY = "501c16a296be1c368b4865b05b6a1994"
 ADMIN_USERNAME = "Burxon_Xayrullayev"
 
 logging.basicConfig(level=logging.INFO)
-
-def reply_menu():
-    return ReplyKeyboardMarkup(
-        [[KeyboardButton("🏠 Bosh menyu")]],
-        resize_keyboard=True,
-        is_persistent=True
-    )
 user_states = {}
 
 def main_menu_keyboard():
@@ -31,18 +24,36 @@ def main_menu_keyboard():
     ])
 
 def back_to_menu():
-    return InlineKeyboardMarkup([[InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu")]])
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("🔙 Orqaga", callback_data="menu")]
+    ])
 
 def back_to_qurilish():
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("🔙 Qurilish", callback_data="qurilish")],
-        [InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu")]
+        [InlineKeyboardButton("🔙 Orqaga", callback_data="qurilish")]
+    ])
+
+def done_qurilish():
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("🔙 Orqaga", callback_data="qurilish"),
+         InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu")]
     ])
 
 def back_to_arxitektura():
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("🔙 Arxitektura", callback_data="arxitektura")],
-        [InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu")]
+        [InlineKeyboardButton("🔙 Orqaga", callback_data="arxitektura")]
+    ])
+
+def done_arxitektura():
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("🔙 Orqaga", callback_data="arxitektura"),
+         InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu")]
+    ])
+
+def result_keyboard(back_to):
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("🔙 Orqaga", callback_data=back_to),
+         InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu")]
     ])
 
 # =====================
@@ -82,7 +93,7 @@ def get_currency():
 # =====================
 
 def calc_maydon(u, k): return f"📐 *Maydon:*\n{u}m × {k}m = *{u*k:.2f} m²*"
-def calc_yuza(u, k, b): return f"🏠 *Uy yuzasi:*\nUzunlik: {u}m | Kenglik: {k}m | Balandlik: {b}m\n━━━━━━━━━━━\n📐 Pol: *{u*k:.2f} m²*\n🏠 Devorlar: *{2*(u+k)*b:.2f} m²*\n🔝 Shift: *{u*k:.2f} m²*\n✅ Jami: *{u*k*2 + 2*(u+k)*b:.2f} m²*"
+def calc_yuza_q(u, k, b): return f"🏠 *Uy yuzasi:*\nUzunlik: {u}m | Kenglik: {k}m | Balandlik: {b}m\n━━━━━━━━━━━\n📐 Pol: *{u*k:.2f} m²*\n🏠 Devorlar: *{2*(u+k)*b:.2f} m²*\n🔝 Shift: *{u*k:.2f} m²*\n✅ Jami: *{u*k*2 + 2*(u+k)*b:.2f} m²*"
 def calc_gisht(u, k, b):
     d = 2*(u+k)*b
     g = int(d*51)
@@ -98,18 +109,18 @@ def calc_narx(m, n):
     return f"💰 *Qurilish narxi:*\n{m} m² × {n:,} so'm\n✅ *{j:,.0f} so'm*\n≈ *${j/12900:.0f}*"
 def calc_deraza(u, k, d_soni, e_soni):
     devor = 2*(u+k)*k
-    d_mayd = d_soni * 1.5  # 1 deraza ~ 1.5 m²
-    e_mayd = e_soni * 2.0  # 1 eshik ~ 2 m²
+    d_mayd = d_soni * 1.5
+    e_mayd = e_soni * 2.0
     sof = devor - d_mayd - e_mayd
     return f"🪟 *Deraza va eshik:*\nDevor: {devor:.2f} m²\nDerazalar: {d_soni} ta (~{d_mayd} m²)\nEshiklar: {e_soni} ta (~{e_mayd} m²)\n✅ Sof devor: *{sof:.2f} m²*"
 def calc_sement(m):
-    sement = m * 0.3  # 1 m² uchun ~0.3 qop
+    sement = m * 0.3
     qum = m * 1.0
     shag = m * 1.2
-    return f"🏗 *Sement hisoblash:*\n{m} m² uchun:\n✅ Sement: *{sement:.1f} qop (50kg)*\n✅ Qum: *{qum:.1f} m³*\n✅ Shag'al: *{shag:.1f} m³*"
+    return f"🏗 *Sement:*\n{m} m² uchun:\n✅ Sement: *{sement:.1f} qop (50kg)*\n✅ Qum: *{qum:.1f} m³*\n✅ Shag'al: *{shag:.1f} m³*"
 def calc_temir(u, k, b):
     hajm = u*k*b
-    temir = hajm * 100  # 1 m³ beton uchun ~100 kg temir
+    temir = hajm * 100
     beton = hajm * 1.5
     return f"🔩 *Temir-beton:*\nHajm: {hajm:.2f} m³\n✅ Temir: *{temir:.0f} kg*\n✅ Beton: *{beton:.2f} m³*"
 
@@ -118,6 +129,12 @@ def calc_temir(u, k, b):
 # =====================
 
 def calc_perimetr(u, k): return f"📏 *Perimetr:*\n{u}m × {k}m\n✅ P = 2×({u}+{k}) = *{2*(u+k):.2f} m*"
+def calc_yuza_a(u, k, b):
+    pol = u * k
+    devor = 2 * (u + k) * b
+    shift = u * k
+    jami = pol + devor + shift
+    return f"📐 *To'liq yuza:*\nUzunlik: {u}m | Kenglik: {k}m | Balandlik: {b}m\n━━━━━━━━━━━\n📐 Pol: *{pol:.2f} m²*\n🏠 Devorlar: *{devor:.2f} m²*\n🔝 Shift: *{shift:.2f} m²*\n✅ Jami yuza: *{jami:.2f} m²*"
 def calc_uchburchak(a, b, c):
     s = (a+b+c)/2
     maydon = math.sqrt(s*(s-a)*(s-b)*(s-c))
@@ -149,12 +166,12 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.message.reply_text("📍 Shahar nomini yozing:", reply_markup=back_to_menu())
 
     elif data == "kurs":
-        await query.message.reply_text(get_currency(), parse_mode="Markdown", reply_markup=back_to_menu())
+        await query.message.reply_text(get_currency(), parse_mode="Markdown", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Orqaga", callback_data="menu"), InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu")]]))
 
     elif data == "admin":
         kb = InlineKeyboardMarkup([
             [InlineKeyboardButton("💬 Admin bilan bog'lanish", url=f"https://t.me/{ADMIN_USERNAME}")],
-            [InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu")]
+            [InlineKeyboardButton("🔙 Orqaga", callback_data="menu")]
         ])
         await query.message.reply_text("👨‍💼 *Admin:*", reply_markup=kb, parse_mode="Markdown")
 
@@ -169,16 +186,17 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("🪟 Deraza/Eshik", callback_data="c_deraza"),
              InlineKeyboardButton("🏗 Sement", callback_data="c_sement")],
             [InlineKeyboardButton("🔩 Temir-beton", callback_data="c_temir")],
-            [InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu")],
+            [InlineKeyboardButton("🔙 Orqaga", callback_data="menu")],
         ])
         await query.message.reply_text("🏠 *Qurilish Kalkulyatori:*", reply_markup=kb, parse_mode="Markdown")
 
     elif data == "arxitektura":
         kb = InlineKeyboardMarkup([
             [InlineKeyboardButton("📏 Perimetr", callback_data="a_perimetr")],
+            [InlineKeyboardButton("📐 To'liq yuza", callback_data="a_yuza")],
             [InlineKeyboardButton("🔺 Uch burchak maydon", callback_data="a_uchburchak")],
             [InlineKeyboardButton("⭕ Doira maydon", callback_data="a_doira")],
-            [InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu")],
+            [InlineKeyboardButton("🔙 Orqaga", callback_data="menu")],
         ])
         await query.message.reply_text("📐 *Arxitektura Kalkulyatori:*", reply_markup=kb, parse_mode="Markdown")
 
@@ -215,6 +233,9 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data == "a_perimetr":
         user_states[user_id] = "a_perimetr_1"; context.user_data["c"] = {}
         await query.message.reply_text("📏 Uzunlikni yozing (m):", reply_markup=back_to_arxitektura())
+    elif data == "a_yuza":
+        user_states[user_id] = "a_yuza_1"; context.user_data["c"] = {}
+        await query.message.reply_text("📐 Uzunlikni yozing (m):", reply_markup=back_to_arxitektura())
     elif data == "a_uchburchak":
         user_states[user_id] = "a_uch_1"; context.user_data["c"] = {}
         await query.message.reply_text("🔺 Birinchi tomonni yozing (m):", reply_markup=back_to_arxitektura())
@@ -232,7 +253,7 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         val = float(text)
 
         if state == "waiting_city":
-            await update.message.reply_text(get_weather(text), parse_mode="Markdown", reply_markup=back_to_menu())
+            await update.message.reply_text(get_weather(text), parse_mode="Markdown", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Orqaga", callback_data="menu"), InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu")]]))
             user_states.pop(user_id, None)
 
         # Maydon
@@ -240,7 +261,7 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             c["u"] = val; user_states[user_id] = "c_maydon_2"
             await update.message.reply_text("📐 Kenglikni yozing (m):", reply_markup=back_to_qurilish())
         elif state == "c_maydon_2":
-            await update.message.reply_text(calc_maydon(c["u"], val), parse_mode="Markdown", reply_markup=back_to_qurilish())
+            await update.message.reply_text(calc_maydon(c["u"], val), parse_mode="Markdown", reply_markup=done_qurilish())
             user_states.pop(user_id, None)
 
         # Yuza
@@ -251,7 +272,7 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             c["k"] = val; user_states[user_id] = "c_yuza_3"
             await update.message.reply_text("🏠 Balandlikni yozing (m):", reply_markup=back_to_qurilish())
         elif state == "c_yuza_3":
-            await update.message.reply_text(calc_yuza(c["u"], c["k"], val), parse_mode="Markdown", reply_markup=back_to_qurilish())
+            await update.message.reply_text(calc_yuza_q(c["u"], c["k"], val), parse_mode="Markdown", reply_markup=done_qurilish())
             user_states.pop(user_id, None)
 
         # G'isht
@@ -262,12 +283,12 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             c["k"] = val; user_states[user_id] = "c_gisht_3"
             await update.message.reply_text("🧱 Balandlikni yozing (m):", reply_markup=back_to_qurilish())
         elif state == "c_gisht_3":
-            await update.message.reply_text(calc_gisht(c["u"], c["k"], val), parse_mode="Markdown", reply_markup=back_to_qurilish())
+            await update.message.reply_text(calc_gisht(c["u"], c["k"], val), parse_mode="Markdown", reply_markup=done_qurilish())
             user_states.pop(user_id, None)
 
         # Bo'yoq
         elif state == "c_boyoq_1":
-            await update.message.reply_text(calc_boyoq(val), parse_mode="Markdown", reply_markup=back_to_qurilish())
+            await update.message.reply_text(calc_boyoq(val), parse_mode="Markdown", reply_markup=done_qurilish())
             user_states.pop(user_id, None)
 
         # Plitka
@@ -281,7 +302,7 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             c["po"] = val; user_states[user_id] = "c_plitka_4"
             await update.message.reply_text("🔲 Plitka kengligini yozing (sm):", reply_markup=back_to_qurilish())
         elif state == "c_plitka_4":
-            await update.message.reply_text(calc_plitka(c["u"], c["k"], c["po"], val), parse_mode="Markdown", reply_markup=back_to_qurilish())
+            await update.message.reply_text(calc_plitka(c["u"], c["k"], c["po"], val), parse_mode="Markdown", reply_markup=done_qurilish())
             user_states.pop(user_id, None)
 
         # Narx
@@ -289,7 +310,7 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             c["m"] = val; user_states[user_id] = "c_narx_2"
             await update.message.reply_text("💰 1 m² narxini yozing (so'm):", reply_markup=back_to_qurilish())
         elif state == "c_narx_2":
-            await update.message.reply_text(calc_narx(c["m"], val), parse_mode="Markdown", reply_markup=back_to_qurilish())
+            await update.message.reply_text(calc_narx(c["m"], val), parse_mode="Markdown", reply_markup=done_qurilish())
             user_states.pop(user_id, None)
 
         # Deraza
@@ -303,12 +324,12 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             c["d"] = int(val); user_states[user_id] = "c_deraza_4"
             await update.message.reply_text("🚪 Eshik sonini yozing:", reply_markup=back_to_qurilish())
         elif state == "c_deraza_4":
-            await update.message.reply_text(calc_deraza(c["u"], c["k"], c["d"], int(val)), parse_mode="Markdown", reply_markup=back_to_qurilish())
+            await update.message.reply_text(calc_deraza(c["u"], c["k"], c["d"], int(val)), parse_mode="Markdown", reply_markup=done_qurilish())
             user_states.pop(user_id, None)
 
         # Sement
         elif state == "c_sement_1":
-            await update.message.reply_text(calc_sement(val), parse_mode="Markdown", reply_markup=back_to_qurilish())
+            await update.message.reply_text(calc_sement(val), parse_mode="Markdown", reply_markup=done_qurilish())
             user_states.pop(user_id, None)
 
         # Temir-beton
@@ -319,7 +340,7 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             c["k"] = val; user_states[user_id] = "c_temir_3"
             await update.message.reply_text("🔩 Qalinlikni yozing (m, masalan: 0.3):", reply_markup=back_to_qurilish())
         elif state == "c_temir_3":
-            await update.message.reply_text(calc_temir(c["u"], c["k"], val), parse_mode="Markdown", reply_markup=back_to_qurilish())
+            await update.message.reply_text(calc_temir(c["u"], c["k"], val), parse_mode="Markdown", reply_markup=done_qurilish())
             user_states.pop(user_id, None)
 
         # Perimetr
@@ -327,7 +348,18 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             c["u"] = val; user_states[user_id] = "a_perimetr_2"
             await update.message.reply_text("📏 Kenglikni yozing (m):", reply_markup=back_to_arxitektura())
         elif state == "a_perimetr_2":
-            await update.message.reply_text(calc_perimetr(c["u"], val), parse_mode="Markdown", reply_markup=back_to_arxitektura())
+            await update.message.reply_text(calc_perimetr(c["u"], val), parse_mode="Markdown", reply_markup=done_arxitektura())
+            user_states.pop(user_id, None)
+
+        # Yuza (arxitektura)
+        elif state == "a_yuza_1":
+            c["u"] = val; user_states[user_id] = "a_yuza_2"
+            await update.message.reply_text("📐 Kenglikni yozing (m):", reply_markup=back_to_arxitektura())
+        elif state == "a_yuza_2":
+            c["k"] = val; user_states[user_id] = "a_yuza_3"
+            await update.message.reply_text("📐 Balandlikni yozing (m):", reply_markup=back_to_arxitektura())
+        elif state == "a_yuza_3":
+            await update.message.reply_text(calc_yuza_a(c["u"], c["k"], val), parse_mode="Markdown", reply_markup=done_arxitektura())
             user_states.pop(user_id, None)
 
         # Uch burchak
@@ -338,27 +370,20 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             c["b"] = val; user_states[user_id] = "a_uch_3"
             await update.message.reply_text("🔺 Uchinchi tomonni yozing (m):", reply_markup=back_to_arxitektura())
         elif state == "a_uch_3":
-            await update.message.reply_text(calc_uchburchak(c["a"], c["b"], val), parse_mode="Markdown", reply_markup=back_to_arxitektura())
+            await update.message.reply_text(calc_uchburchak(c["a"], c["b"], val), parse_mode="Markdown", reply_markup=done_arxitektura())
             user_states.pop(user_id, None)
 
         # Doira
         elif state == "a_doira_1":
-            await update.message.reply_text(calc_doira(val), parse_mode="Markdown", reply_markup=back_to_arxitektura())
+            await update.message.reply_text(calc_doira(val), parse_mode="Markdown", reply_markup=done_arxitektura())
             user_states.pop(user_id, None)
 
-        elif text == "🏠 Bosh menyu":
-            user_states.pop(user_id, None)
-            await update.message.reply_text(
-                "🏠 *Bosh menyu:*",
-                reply_markup=main_menu_keyboard(),
-                parse_mode="Markdown"
-            )
         else:
             await update.message.reply_text("Menyu uchun /start yozing! 😊", reply_markup=back_to_menu())
 
     except ValueError:
         if state == "waiting_city":
-            await update.message.reply_text(get_weather(text), parse_mode="Markdown", reply_markup=back_to_menu())
+            await update.message.reply_text(get_weather(text), parse_mode="Markdown", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Orqaga", callback_data="menu"), InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu")]]))
             user_states.pop(user_id, None)
         else:
             await update.message.reply_text("❌ Raqam kiriting! Masalan: 5 yoki 5.5", reply_markup=back_to_menu())
